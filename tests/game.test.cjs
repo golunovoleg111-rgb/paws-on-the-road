@@ -4,7 +4,7 @@ const elements=new Map(),ctx=new Proxy({},{get:()=>()=>{}});const el=()=>({inner
 const document={querySelector:s=>{if(!elements.has(s))elements.set(s,el());return elements.get(s)},querySelectorAll:()=>[],createElement:()=>el()};
 let stored={hero:1,hat:2,unlocked:9,done:[1,2,3,4,5,6,7,8],outfits:[0,1,2],fish:42};
 const sandbox={document,localStorage:{getItem:()=>JSON.stringify(stored),setItem:(k,v)=>stored=JSON.parse(v)},window:{addEventListener(){},scrollTo(){}},requestAnimationFrame(){},console,assert};vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(path.join(root,'levels.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'textures.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'adventure.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'game.js'),'utf8')+`
+vm.runInContext(fs.readFileSync(path.join(root,'levels.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'textures.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'characters.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'adventure.js'),'utf8')+'\n'+fs.readFileSync(path.join(root,'game.js'),'utf8')+`
 assert.equal(save.unlocked,9);assert.equal(save.hat,2);assert.equal(save.fish,42);
 for(let n=1;n<=35;n++)for(selected=0;selected<3;selected++){
  start(n,false);assert.equal(mode,'play');assert.ok(L.platforms.every(b=>Number.isFinite(b.x)&&b.w>0));
@@ -47,7 +47,11 @@ start(1,false);const exit=L.exit;p.x=exit.x;p.y=100;update(1/120);assert.equal(m
 console.log('PASS: individually linked gates, timed reset, elevator carry, breakaway ice recovery, vertical camera, elevated exit');
 selected=1;start(19,false);L.enemies=[];L.npc=null;p.x=L.switches[0].x;p.y=L.switches[0].y-p.h;pressed.KeyE=true;update(1/120);keys.KeyD=true;let crossed=false;
 for(let i=0;i<8*120;i++){const support=L.platforms.find(b=>Math.abs(b.y-p.y-p.h)<4&&p.x+28>b.x&&p.x<b.x+b.w);if(p.ground&&support&&support.x+support.w-p.x<80)pressed.Space=true;else if(!p.ground&&p.jumps===1&&p.vy>0)pressed.Space=true;update(1/120);if(p.x>L.gates[0].x+30){assert.ok(L.switches[0].on);crossed=true;break}}
-assert.ok(crossed,'slowest hero can clear the timed route without skill');console.log('PASS: actual game physics clears the timed gate with Hector inside eight seconds');
+assert.ok(crossed,'slowest hero can clear the timed route without skill');
+let drawDepth=0;const checkedCanvas=new Proxy({},{get:(_,method)=>(...args)=>{for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),'finite canvas coordinate '+String(method));if(method==='save')drawDepth++;if(method==='restore'){drawDepth--;assert.ok(drawDepth>=0,'balanced restore')}if(method==='ellipse'){assert.ok(args[2]>=0);assert.ok(args[3]>=0)}}});
+for(const direction of [-1,1])for(let id=0;id<3;id++)for(let costume=0;costume<8;costume++)for(const action of ['idle','jump','attack']){visualTime=.5;cat(checkedCanvas,50,100,1.3,id,costume,direction,action==='idle'?0:1,action,.55);assert.equal(drawDepth,0)}
+for(const t of [.1,1.5,4.6]){visualTime=t;for(const state of ['idle','charge','tired']){drawBogdanus(checkedCanvas,50,160,1,-1,state,t);assert.equal(drawDepth,0)}for(const dir of [-1,1]){drawMouse(checkedCanvas,50,60,1,dir,t,false);drawMouse(checkedCanvas,50,60,1,dir,t,true);drawBat(checkedCanvas,50,60,1,dir,t);owl(checkedCanvas,50,90);assert.equal(drawDepth,0)}for(const who of ['Мисти','Гектор','Коди','Ори','Богданус'])drawPortrait(checkedCanvas,who)}
+assert.equal(drawDepth,0);console.log('PASS: 144 hero/costume/action/direction renders, full cast and portraits keep valid geometry and balanced canvas transforms');console.log('PASS: actual game physics clears the timed gate with Hector inside eight seconds');
 `,sandbox,{timeout:10000});
 
 
